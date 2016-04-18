@@ -14,8 +14,28 @@ from django.utils.encoding import force_str
 from ws4redis.websocket import WebSocket
 from ws4redis.wsgi_server import WebsocketWSGIServer, HandshakeError, UpgradeRequiredError
 
+from iotsystem.authentication import _RedisUser
+from iotsystem.redis_models import User
+from iotsystem.models import Tag as TagDevice
+
 util._hoppish = {}.__contains__
 
+def process_request(self,request):
+    access_token = str.split(request.META['HTTP_AUTHORIZATION'])[1]
+    user = User.access_token.hgetall([access_token])
+    user_class = _RedisUser(**user)
+    user_class.id = int(user['user_id'])
+    user_class.is_staff = user['is_staff']
+    user_class.is_superuser = user['is_superuser']
+
+    #add groups
+    tags = TagDevice.objects.filter(user_s_id=user_class.id)
+    
+    groups = []
+    for tag in tags:
+        groups.append(str(tag.dev_id))
+    request.META["ws4redis:memberof"] =  groups;
+    request.user = user_class
 
 class WebsocketRunServer(WebsocketWSGIServer):
     WS_GUID = b'258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
@@ -77,7 +97,7 @@ def run(addr, port, wsgi_handler, ipv6=False, threading=False):
     httpd.serve_forever()
 runserver.run = run
 
-
+WebsocketRunServer.process_request = process_request
 _django_app = get_wsgi_application()
 _websocket_app = WebsocketRunServer()
 _websocket_url = getattr(settings, 'WEBSOCKET_URL')

@@ -37,7 +37,7 @@ def _wrap_groups(groups, request):
     result = set()
     for g in groups:
         if g is SELF and request and request.user and request.user.is_authenticated():
-            result.update(request.session.get('ws4redis:memberof', []))
+            result.update(request.META['ws4redis:memberof'])
         else:
             result.add(g)
     return result
