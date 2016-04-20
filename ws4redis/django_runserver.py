@@ -21,21 +21,25 @@ from iotsystem.models import Tag as TagDevice
 util._hoppish = {}.__contains__
 
 def process_request(self,request):
-    access_token = str.split(request.META['HTTP_AUTHORIZATION'])[1]
-    user = User.access_token.hgetall([access_token])
-    user_class = _RedisUser(**user)
-    user_class.id = int(user['user_id'])
-    user_class.is_staff = user['is_staff']
-    user_class.is_superuser = user['is_superuser']
+    if request.META['HTTP_AUTHORIZATION'] != None:
+        access_token = str.split(request.META['HTTP_AUTHORIZATION'])[1]
+        user = User.access_token.hgetall([access_token])
+        user_class = _RedisUser(**user)
+        user_class.id = int(user['user_id'])
+        user_class.is_staff = user['is_staff']
+        user_class.is_superuser = user['is_superuser']
 
-    #add groups
-    tags = TagDevice.objects.filter(user_s_id=user_class.id)
-    
-    groups = []
-    for tag in tags:
-        groups.append(str(tag.dev_id))
-    request.META["ws4redis:memberof"] =  groups;
-    request.user = user_class
+        #add groups
+        tags = TagDevice.objects.filter(user_s_id=user_class.id)
+        
+        groups = []
+        for tag in tags:
+            groups.append(str(tag.dev_id))
+        request.META["ws4redis:memberof"] =  groups;
+        request.user = user_class
+    else:
+        request.META["ws4redis:memberof"] =  ['debug'];
+
 
 class WebsocketRunServer(WebsocketWSGIServer):
     WS_GUID = b'258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
