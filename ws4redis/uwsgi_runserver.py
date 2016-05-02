@@ -13,18 +13,19 @@ def process_request(self,request):
         access_token = str.split(request.META['HTTP_AUTHORIZATION'])[1]
         user = User.access_token.hgetall([access_token])
         user_class = _RedisUser(**user)
-        user_class.id = int(user['user_id'])
-        user_class.is_staff = user['is_staff']
-        user_class.is_superuser = user['is_superuser']
+        if user_class is not None:
+            user_class.id = int(user['user_id'])
+            user_class.is_staff = user['is_staff']
+            user_class.is_superuser = user['is_superuser']
 
-        #add groups
-        tags = TagDevice.objects.filter(user_s_id=user_class.id)
-        
-        groups = []
-        for tag in tags:
-            groups.append(str(tag.dev_id))
-        request.META["ws4redis:memberof"] =  groups;
-        request.user = user_class
+            #add groups
+            tags = TagDevice.objects.filter(user_s_id=user_class.id)
+            
+            groups = []
+            for tag in tags:
+                groups.append(str(tag.dev_id))
+            request.META["ws4redis:memberof"] =  groups;
+            request.user = user_class
     else:
         request.META["ws4redis:memberof"] =  ['debug'];
 
