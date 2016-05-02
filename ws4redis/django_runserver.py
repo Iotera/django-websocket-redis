@@ -25,7 +25,7 @@ def process_request(self,request):
         access_token = str.split(request.META['HTTP_AUTHORIZATION'])[1]
         user = User.access_token.hgetall([access_token])
         user_class = _RedisUser(**user)
-        if user_class is not None:
+        if user_class.id is not None:
             user_class.id = int(user['user_id'])
             user_class.is_staff = user['is_staff']
             user_class.is_superuser = user['is_superuser']
