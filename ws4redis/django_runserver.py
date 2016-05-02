@@ -21,11 +21,11 @@ from iotsystem.models import Tag as TagDevice
 util._hoppish = {}.__contains__
 
 def process_request(self,request):
-    if request.META['HTTP_AUTHORIZATION'] != None:
+    if request.META['HTTP_AUTHORIZATION'] is not None:
         access_token = str.split(request.META['HTTP_AUTHORIZATION'])[1]
         user = User.access_token.hgetall([access_token])
         user_class = _RedisUser(**user)
-        if user_class.id is not None:
+        if user:
             user_class.id = int(user['user_id'])
             user_class.is_staff = user['is_staff']
             user_class.is_superuser = user['is_superuser']
@@ -38,9 +38,12 @@ def process_request(self,request):
                 groups.append(str(tag.dev_id))
             request.META["ws4redis:memberof"] =  groups;
             request.user = user_class
+	    return True 
+    	else:
+	    return False
     else:
-        request.META["ws4redis:memberof"] =  ['debug'];
-
+        request.META["ws4redis:memberof"] =  ['debug']
+	return False
 
 class WebsocketRunServer(WebsocketWSGIServer):
     WS_GUID = b'258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
