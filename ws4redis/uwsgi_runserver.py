@@ -8,25 +8,25 @@ from iotsystem.authentication import _RedisUser
 from iotsystem.redis_models import User
 from iotsystem.models import Tag as TagDevice
 
-def process_request(self,request):
-    if request.META['HTTP_AUTHORIZATION'] != None:
-        access_token = str.split(request.META['HTTP_AUTHORIZATION'])[1]
-        user = User.access_token.hgetall([access_token])
-        user_class = _RedisUser(**user)
-        user_class.id = int(user['user_id'])
-        user_class.is_staff = user['is_staff']
-        user_class.is_superuser = user['is_superuser']
 
-        #add groups
-        tags = TagDevice.objects.filter(user_s_id=user_class.id)
-        
-        groups = []
-        for tag in tags:
-            groups.append(str(tag.dev_id))
-        request.META["ws4redis:memberof"] =  groups;
-        request.user = user_class
+def process_request(self, request):
+    http_auth = request.META.get('HTTP_AUTHORIZATION')
+    resp = False
+    if http_auth is not None:
+        access_token = http_auth.split()[1]
+        user_data = User.access_token.hgetall([access_token])
+        user = _RedisUser(**user_data)
+        if user:
+            request.user = user
+            tags = TagDevice.objects.filter(user_s_id=user.id)
+            tags = tags.values_list('dev_id', flat=True)
+            groups = [str(dev_id) for dev_id in tags]
+            request.META["ws4redis:memberof"] = groups
+            resp = True
     else:
-        request.META["ws4redis:memberof"] =  ['debug'];
+        request.META["ws4redis:memberof"] = ['debug']
+    return resp
+
 
 class uWSGIWebsocket(object):
     def __init__(self):

@@ -6,13 +6,15 @@ from hashlib import sha1
 from wsgiref import util
 from django.core.wsgi import get_wsgi_application
 from django.core.servers.basehttp import WSGIServer, WSGIRequestHandler
-from django.core.handlers.wsgi import logger
 from django.conf import settings
 from django.core.management.commands import runserver
 from django.utils.six.moves import socketserver
 from django.utils.encoding import force_str
+from ws4redis.settings import LOGGER
 from ws4redis.websocket import WebSocket
-from ws4redis.wsgi_server import WebsocketWSGIServer, HandshakeError, UpgradeRequiredError
+from ws4redis.wsgi_server import (
+    WebsocketWSGIServer, HandshakeError, UpgradeRequiredError
+)
 
 from iotsystem.authentication import _RedisUser
 from iotsystem.redis_models import User
@@ -20,25 +22,24 @@ from iotsystem.models import Tag as TagDevice
 
 util._hoppish = {}.__contains__
 
-def process_request(self,request):
-    if request.META['HTTP_AUTHORIZATION'] != None:
-        access_token = str.split(request.META['HTTP_AUTHORIZATION'])[1]
-        user = User.access_token.hgetall([access_token])
-        user_class = _RedisUser(**user)
-        user_class.id = int(user['user_id'])
-        user_class.is_staff = user['is_staff']
-        user_class.is_superuser = user['is_superuser']
 
-        #add groups
-        tags = TagDevice.objects.filter(user_s_id=user_class.id)
-        
-        groups = []
-        for tag in tags:
-            groups.append(str(tag.dev_id))
-        request.META["ws4redis:memberof"] =  groups;
-        request.user = user_class
+def process_request(self, request):
+    http_auth = request.META.get('HTTP_AUTHORIZATION')
+    resp = False
+    if http_auth is not None:
+        access_token = http_auth.split()[1]
+        user_data = User.access_token.hgetall([access_token])
+        user = _RedisUser(**user_data)
+        if user:
+            request.user = user
+            tags = TagDevice.objects.filter(user_s_id=user.user_id)
+            tags = tags.values_list('dev_id', flat=True)
+            groups = [str(dev_id) for dev_id in tags]
+            request.META["ws4redis:memberof"] = groups
+            resp = True
     else:
-        request.META["ws4redis:memberof"] =  ['debug'];
+        request.META["ws4redis:memberof"] = ['debug']
+    return resp
 
 
 class WebsocketRunServer(WebsocketWSGIServer):
@@ -78,7 +79,7 @@ class WebsocketRunServer(WebsocketWSGIServer):
         if environ.get('HTTP_SEC_WEBSOCKET_PROTOCOL') is not None:
             headers.append(('Sec-WebSocket-Protocol', environ.get('HTTP_SEC_WEBSOCKET_PROTOCOL')))
 
-        logger.debug('WebSocket request accepted, switching protocols')
+        LOGGER.debug('WebSocket request accepted, switching protocols')
         start_response(force_str('101 Switching Protocols'), headers)
         six.get_method_self(start_response).finish_content()
         return WebSocket(environ['wsgi.input'])
@@ -91,7 +92,7 @@ def run(addr, port, wsgi_handler, ipv6=False, threading=False):
     """
     Function to monkey patch the internal Django command: manage.py runserver
     """
-    logger.info('Websocket support is enabled')
+    LOGGER.info('Websocket support is enabled')
     server_address = (addr, port)
     if not threading:
         raise Exception("Django's Websocket server must run with threading enabled")
