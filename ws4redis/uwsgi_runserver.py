@@ -18,7 +18,7 @@ def process_request(self, request):
         user = _RedisUser(**user_data)
         if user:
             request.user = user
-            tags = TagDevice.objects.filter(user_s_id=user.id)
+            tags = TagDevice.objects.filter(user_s_id=user.user_id)
             tags = tags.values_list('dev_id', flat=True)
             groups = [str(dev_id) for dev_id in tags]
             request.META["ws4redis:memberof"] = groups
