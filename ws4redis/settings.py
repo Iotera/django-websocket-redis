@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from django.conf import settings
+from django.core.handlers.wsgi import logger
 
 WEBSOCKET_URL = getattr(settings, 'WEBSOCKET_URL', '/ws/')
 
@@ -52,3 +55,5 @@ If set, this callback function is called instead of the default process_request 
 This function can be used to enforce custom authentication flow. i.e. JWT
 """
 WS4REDIS_PROCESS_REQUEST = getattr(settings, 'WS4REDIS_PROCESS_REQUEST', None)
+
+LOGGER = logging.getLogger('ws4redis_logger') or logger
