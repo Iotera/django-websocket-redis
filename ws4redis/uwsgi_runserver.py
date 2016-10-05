@@ -13,22 +13,26 @@ def process_request(self, request):
     http_auth = request.META.get('HTTP_AUTHORIZATION')
     resp = False
     if http_auth is not None:
-        access_token = str.split(http_auth)[1]
-        user_data = User.access_token.hgetall([access_token])
-        user = _RedisUser(**user_data)
-        if user:
-            user.id = int(user_data['user_id'])
+        auth = http_auth.split()
+        if len(auth) == 2:
+            access_token = str.split(http_auth)[1]
+            user_data = User.access_token.hgetall([access_token])
+            if len(user_data):
+                user = _RedisUser(**user_data)
+                if user:
+                    user.id = int(user_data['user_id'])
 
-            tags = TagDevice.objects.filter(user_s_id=user.id)
-            tags = tags.values_list('dev_id', flat=True)
+                    tags = TagDevice.objects.filter(user_s_id=user.id)
+                    tags = tags.values_list('dev_id', flat=True)
 
-            groups = [str(dev_id) for dev_id in tags]
-            request.META["ws4redis:memberof"] = groups
-            request.user = user
-            resp = True
+                    groups = [str(dev_id) for dev_id in tags]
+                    request.META["ws4redis:memberof"] = groups
+                    request.user = user
+                    resp = True
     else:
         request.META["ws4redis:memberof"] = ['debug']
     return resp
+
 
 class uWSGIWebsocket(object):
     def __init__(self):
