@@ -154,5 +154,5 @@ class WebsocketWSGIServer(object):
                 if six.PY3:
                     headers = list(headers)
                 start_response(force_str(status), headers)
-                LOGGER.info('Finish non-websocket response with status code: {}'.format(response.status_code))
+                LOGGER.warning('Finish non-websocket response with status code: {}'.format(response.status_code))
         return response
