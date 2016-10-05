@@ -83,7 +83,7 @@ class WebsocketWSGIServer(object):
             if callable(private_settings.WS4REDIS_PROCESS_REQUEST):
                 private_settings.WS4REDIS_PROCESS_REQUEST(request)
             elif not self.process_request(request):
-                return http.HttpResponseForbidden()
+                raise PermissionDenied
             channels, echo_message = self.process_subscriptions(request)
             if callable(private_settings.WS4REDIS_ALLOWED_CHANNELS):
                 channels = list(private_settings.WS4REDIS_ALLOWED_CHANNELS(request, channels))
