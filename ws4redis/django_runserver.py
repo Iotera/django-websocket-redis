@@ -24,7 +24,7 @@ util._hoppish = {}.__contains__
 
 
 def process_request(self, request):
- 	http_auth = request.META.get('HTTP_AUTHORIZATION')
+    http_auth = request.META.get('HTTP_AUTHORIZATION')
     resp = False
     if http_auth is not None:
         access_token = str.split(http_auth)[1]
